@@ -1,0 +1,5 @@
+API_URL = "https://pfzwi3wvcc.execute-api.eu-central-1.amazonaws.com/test/create-instance"
+API_TOKEN = "l210zdKcAg4p3HesGzGxn7iQaOKXbber49yyurbv"
+db_hostname = "35.243.209.101"
+db_username = "root"
+secret_key = secretkey

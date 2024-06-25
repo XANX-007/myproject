@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Thank You - SiteForge</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='order.css') }}">
+    <style>
+        *{
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Kumbh Sans', sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            text-align: center;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .container h1 {
+            color: #333;
+            font-size: 2rem;
+            background-color: #ff8177;
+            background-image: linear-gradient(to top, #ff0844 0%, #ffb199 100%);
+            background-size: 100%;
+            -webkit-background-clip: text;
+            -moz-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            -moz-text-fill-color: transparent;
+        }
+
+        .container p {
+            color: #666;
+            margin-top: 1rem;
+        }
+
+        .container button {
+            padding: 10px 20px;
+            margin-top: 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #f77062;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .container button:hover {
+            background: #4837ff;
+        }
+
+        @media screen and (max-width: 768px){
+            .container h1 {
+                font-size: 1.5rem;
+            }
+            .container p {
+                font-size: 1rem;
+            }
+            .container button {
+                font-size: 14px;
+                padding: 8px 16px;
+            }
+        }
+
+        @media screen and (max-width: 480px){
+            .container h1 {
+                font-size: 1.2rem;
+            }
+            .container p {
+                font-size: 0.9rem;
+            }
+            .container button {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Thank You for Choosing SiteForge!</h1>
+    <p>Your order has been successfully placed. We appreciate your business.</p>
+    <button onclick="window.location.href='{{ url_for('home') }}'">Return to Home Page</button>
+</div>
+</body>
+</html>

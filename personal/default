@@ -1,0 +1,24 @@
+server {
+    listen 80;
+    server_name 34.148.152.133;
+
+    # Serve static HTML files
+    location / {
+        root /var/www/html;
+        try_files $uri $uri/ =404;
+    }
+
+    # Serve static files (CSS, JS, images) if they are also in /var/www/html/static/
+    location /static/ {
+        alias /var/www/html/static/;
+    }
+
+    # Proxy requests to the Flask application
+    location /app {
+        proxy_pass http://10.0.2.2:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

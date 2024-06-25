@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Page</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='order.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .buttons {
+            margin: 20px;
+        }
+        .buttons button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .product {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            max-width: 600px;
+        }
+    </style>
+</head>
+<body>
+<div class="buttons">
+    <button onclick="showProduct('cheaper')">Basic Starter Website</button>
+    <button onclick="showProduct('fancy')">High Performance Website</button>
+</div>
+
+<div id="cheaper" class="product">
+    <h2>Basic Starter website</h2>
+    <p>This option is great for when you're just getting started and don't expect much traffic on your website yet.</p>
+    <p>The budget friendly option provides you with all the essentials you need starting out.</p>
+    <p>You get your own part of our powerful server that will be more than enough to attract new customers while protecting your wallet!</p>
+    <p>Get started today and get your WordPress website directly delivered!</p>
+    <form action="/launch" method="post" onsubmit="return confirmOrder(this)">
+        <input type="hidden" name="option" value= 1>
+        <input type="hidden" name="project_name" value="">
+        <button type="submit">Order Now</button>
+    </form>
+</div>
+
+<div id="fancy" class="product">
+    <h2>High Performance Website</h2>
+    <p>This is the perfect solution for any business looking for a hip and fresh new website.</p>
+    <p>Our high performance servers will ensure that your website is always up and running, no matter how many customers you have!</p>
+    <p>Thanks to your own load balancer your website won't be overloaded with requests.</p>
+    <p>And thanks to extra security features you won't have to worry about trouble.</p>
+    <p>Get started today and get your WordPress website directly delivered!</p>
+    <form action="/launch" method="post" onsubmit="return confirmOrder(this)">
+        <input type="hidden" name="option" value= 2>
+        <input type="hidden" name="project_name" value="">
+        <button type="submit">Order Now</button>
+    </form>
+</div>
+
+<script>
+    function showProduct(productType) {
+        document.getElementById('cheaper').style.display = 'none';
+        document.getElementById('fancy').style.display = 'none';
+
+        document.getElementById(productType).style.display = 'block';
+    }
+
+    function confirmOrder(form) {
+        const projectName = prompt("Please enter your project name:");
+        if (projectName) {
+            form.project_name.value = projectName;
+            return true;
+        } else {
+            alert("Project name is required to proceed with the order.");
+            return false;
+        }
+    }
+</script>
+</body>
+</html>

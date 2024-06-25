@@ -1,0 +1,12 @@
+flask
+flask-sqlalchemy
+Flask
+gunicorn
+requests
+Flask-Cors
+psycopg2-binary
+Werkzeug
+python-dotenv
+SQLAlchemy
+pymysql
+NFS Server
