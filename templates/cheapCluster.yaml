@@ -1,0 +1,98 @@
+#this template is the template used to launch service in an already exited cluster
+#created by Cejay Henry for sememster 3 case study project
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Task definitions for a cheaper version of webhosting.
+
+Parameters:
+  CustomerName:
+    Type: String
+    Description: The name of the customer.
+  ProjectName:
+    Type: String
+    Description: The name of the customer's project.
+  VPCId:
+    Type: AWS::EC2::VPC::Id
+    Description: The VPC ID for the ECS tasks.
+  PublicSubnetIds:
+    Type: CommaDelimitedList
+    Description: List of public subnet IDs for WordPress.
+  SecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security group ID for WordPress.
+  ExecutionRoleArn:
+    Type: String
+    Description: The ARN of the task execution role.
+  TaskRoleArn:
+    Type: String
+    Description: The ARN of the task role.
+  WordpressDatabaseHost:
+    Type: String
+    Description: The database host for WordPress.
+  WordpressDBUser:
+    Type: String
+    Description: The database user for WordPress.
+  WordpressDBPassword:
+    Type: String
+    Description: The database password for WordPress.
+  WordpressDBName:
+    Type: String
+    Description: The database name for WordPress.
+
+
+
+Resources:
+  WordpressTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "wordpress-task-${CustomerName}-${ProjectName}"
+      NetworkMode: 'awsvpc'
+      RequiresCompatibilities: ['FARGATE']
+      Cpu: '256'
+      Memory: '512'
+      ExecutionRoleArn: !Ref ExecutionRoleArn
+      TaskRoleArn: !Ref TaskRoleArn
+      ContainerDefinitions:
+        - Name: 'wordpress'
+          Image: 'wordpress:latest'
+          Essential: true
+          PortMappings:
+            - ContainerPort: 80
+              Protocol: 'tcp'
+          Environment:
+            - Name: WORDPRESS_DB_HOST
+              Value: !Ref WordpressDatabaseHost
+            - Name: WORDPRESS_DB_USER
+              Value: !Ref WordpressDBUser
+            - Name: WORDPRESS_DB_PASSWORD
+              Value: !Ref WordpressDBPassword
+            - Name: WORDPRESS_DB_NAME
+              Value: !Ref WordpressDBName
+            - Name: WORDPRESS_DB_PREFIX
+              Value: !Sub "${CustomerName}_${ProjectName}_"
+
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Sub "/ecs/wordpress-${CustomerName}-${ProjectName}"
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: "ecs"  
+          Command:
+            - /bin/sh
+            - -c
+            - |
+              ln -sfT /dev/stdout /var/log/apache2/access.log
+              ln -sfT /dev/stderr /var/log/apache2/error.log
+              apache2-foreground    
+
+  WordpressLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/ecs/wordpress-${CustomerName}-${ProjectName}"
+      RetentionInDays: 14
+
+Outputs:
+  WordpressTaskDefinition:
+    Value: !Ref WordpressTaskDefinition
+    Description: The WordPress task definition
+

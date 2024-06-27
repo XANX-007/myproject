@@ -1,0 +1,195 @@
+#this template is used to create task and cluster using Cloudformation 
+#created by Cejay Henry for sememster 3 case study project
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ECS cluster and task definitions for customer isolation with service discovery.
+
+Parameters:
+  CustomerName:
+    Type: String
+    Description: The name of the customer.
+  ProjectName:
+    Type: String
+    Description: The name of the customer's project.
+  VPCId:
+    Type: AWS::EC2::VPC::Id
+  PublicSubnetIds:
+    Type: CommaDelimitedList
+    Description: List of public subnet IDs for WordPress.
+  PrivateSubnetIds:
+    Type: CommaDelimitedList
+    Description: List of private subnet IDs for MySQL.
+  SecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security group ID for WordPress.
+  DatabaseSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security group ID for MySQL.
+  NamespaceId:
+    Type: String
+    Description: The ID of the service discovery namespace.
+  PublicNamespaceId:
+    Type: String
+    Description: The ID of the service discovery namespace.
+  NamespaceName:
+    Type: String
+    Description: The name of the namespace.
+   
+  ExecutionRoleArn:
+    Type: String
+    Description: The ARN of the task execution role.
+  TaskRoleArn:
+    Type: String
+    Description: The ARN of the task role.
+
+
+Resources:
+  # ECS Cluster
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub "cluster-${CustomerName}-${ProjectName}"
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+
+  # Service Discovery Service for Database
+  DatabaseServiceDiscovery:
+    Type: 'AWS::ServiceDiscovery::Service'
+    Properties:
+      Description: !Sub "Service discovery for ${CustomerName}-${ProjectName} database"
+      Name: !Sub "${CustomerName}-${ProjectName}" 
+      NamespaceId: !Ref NamespaceId
+      DnsConfig:
+        DnsRecords:
+          - Type: A
+            TTL: 60
+          - Type: AAAA
+            TTL: 60
+        RoutingPolicy: WEIGHTED
+
+  WordpressServiceDiscovery:
+    Type: 'AWS::ServiceDiscovery::Service'
+    Properties:
+      Description: !Sub "Service discovery for ${CustomerName}-${ProjectName} database"
+      Name: !Sub "${CustomerName}-${ProjectName}" 
+      NamespaceId: !Ref PublicNamespaceId
+      DnsConfig:
+        DnsRecords:
+          - Type: A
+            TTL: 60
+          - Type: AAAA
+            TTL: 60
+        RoutingPolicy: WEIGHTED
+
+  # WordPress Task Definition
+  WordpressTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "wordpress-task-${CustomerName}-${ProjectName}"
+      NetworkMode: 'awsvpc'
+      RequiresCompatibilities: ['FARGATE']
+      Cpu: '1024'
+      Memory: '2048'
+      ExecutionRoleArn: !Ref ExecutionRoleArn
+      TaskRoleArn: !Ref TaskRoleArn
+      ContainerDefinitions:
+        - Name: 'wordpress'
+          Image: 'wordpress:latest'
+          Essential: true
+          PortMappings:
+            - ContainerPort: 80
+              Protocol: 'tcp'
+          Environment:
+            - Name: WORDPRESS_DB_HOST
+              Value: !Sub "${CustomerName}-${ProjectName}.${NamespaceName}"
+            - Name: WORDPRESS_DB_USER
+              Value: 'wordpress'
+            - Name: WORDPRESS_DB_PASSWORD
+              Value: 'wordpress_password'
+            - Name: WORDPRESS_DB_NAME
+              Value: 'wordpress'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Sub "/ecs/wordpress-${CustomerName}-${ProjectName}"
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: "ecs"
+          Command:
+            - /bin/sh
+            - -c
+            - |
+              ln -sfT /dev/stdout /var/log/apache2/access.log
+              ln -sfT /dev/stderr /var/log/apache2/error.log
+              apache2-foreground 
+
+  # MySQL Task Definition
+  DatabaseTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "database-task-${CustomerName}-${ProjectName}"
+      NetworkMode: 'awsvpc'
+      RequiresCompatibilities: ['FARGATE']
+      Cpu: '256'
+      Memory: '1024'
+      ExecutionRoleArn: !Ref ExecutionRoleArn
+      TaskRoleArn: !Ref TaskRoleArn
+      ContainerDefinitions:
+        - Name: 'database'
+          Image: 'mysql:8.0.27'
+          Essential: true
+          PortMappings:
+            - ContainerPort: 3306
+              Protocol: 'tcp'
+          Environment:
+            - Name: MYSQL_ROOT_PASSWORD
+              Value: 'root_password'
+            - Name: MYSQL_DATABASE
+              Value: 'wordpress'
+            - Name: MYSQL_USER
+              Value: 'wordpress'
+            - Name: MYSQL_PASSWORD
+              Value: 'wordpress_password'
+          MountPoints:
+            - SourceVolume: mysqlvol
+              ContainerPath: /var/lib/mysql
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Sub "/ecs/database-${CustomerName}-${ProjectName}"
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: "ecs"
+      Volumes:
+        - Name: mysqlvol
+          Host: {}
+
+  # Log Groups
+  WordpressLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/ecs/wordpress-${CustomerName}-${ProjectName}"
+      RetentionInDays: 14
+
+  DatabaseLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/ecs/database-${CustomerName}-${ProjectName}"
+      RetentionInDays: 14
+
+# Outputs
+Outputs:
+  ClusterName:
+    Value: !Ref ECSCluster
+    Description: The name of the ECS Cluster
+  WordpressTaskDefinition:
+    Value: !Ref WordpressTaskDefinition
+    Description: The WordPress task definition
+  DatabaseTaskDefinition:
+    Value: !Ref DatabaseTaskDefinition
+    Description: The Database task definition
+  DatabaseServiceDiscoveryArn:
+    Value: !GetAtt DatabaseServiceDiscovery.Arn
+    Description: The ARN of the database service discovery service
+  WordpressServiceDiscoveryArn:
+    Value: !GetAtt WordpressServiceDiscovery.Arn
+    Description: The ARN of the wordpress service discovery service

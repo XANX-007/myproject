@@ -1,0 +1,118 @@
+#created by Cejay Henry for sememster 3 case study project
+
+{
+  "Comment": "State machine to create ECS stack and services for a customer",
+  "StartAt": "Choice",
+  "States": {
+    "Choice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.pathway",
+          "NumericEquals": 1,
+          "Next": "Pass"
+        },
+        {
+          "Variable": "$.pathway",
+          "NumericEquals": 2,
+          "Next": "CreateCloudFormationStack"
+        }
+      ],
+      "Default": "Fail"
+    },
+    "Pass": {
+      "Type": "Pass",
+      "Next": "Lambda Invoke"
+    },
+    "Lambda Invoke": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "OutputPath": "$.Payload",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "arn:aws:lambda:eu-central-1:667170361641:function:launchCheap:$LATEST"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "End": true
+    },
+    "CreateCloudFormationStack": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:eu-central-1:667170361641:function:create_cloudformation_stack:$LATEST",
+      "Next": "WaitForStackCreation",
+      "ResultPath": "$.cloudformationOutput",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.error",
+          "Next": "Fail"
+        }
+      ]
+    },
+    "WaitForStackCreation": {
+      "Type": "Wait",
+      "Seconds": 30,
+      "Next": "ParseCloudFormationOutput"
+    },
+    "ParseCloudFormationOutput": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:eu-central-1:667170361641:function:parse_json_body:$LATEST",
+      "Next": "CreateEcsServices",
+      "ResultPath": "$.parsedOutput",
+      "Parameters": {
+        "cloudformationOutput.$": "$.cloudformationOutput",
+        "customerName.$": "$.customerName"
+      },
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.error",
+          "Next": "Fail"
+        }
+      ]
+    },
+    "CreateEcsServices": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:eu-central-1:667170361641:function:create_ecs_services:$LATEST",
+      "End": true,
+      "Parameters": {
+        "ClusterName.$": "$.parsedOutput.ClusterName",
+        "projectName.$": "$.parsedOutput.projectName",
+        "WordpressTaskDefinition.$": "$.parsedOutput.WordpressTaskDefinition",
+        "DatabaseTaskDefinition.$": "$.parsedOutput.DatabaseTaskDefinition",
+        "customerName.$": "$.parsedOutput.customerName",
+        "DatabaseServiceDiscoveryArn.$": "$.parsedOutput.DatabaseServiceDiscoveryArn",
+        "WordpressServiceDiscoveryArn.$": "$.parsedOutput.WordpressServiceDiscoveryArn"
+      },
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.error",
+          "Next": "Fail"
+        }
+      ]
+    },
+    "Fail": {
+      "Type": "Fail",
+      "Error": "WorkflowFailed",
+      "Cause": "Failed to create ECS stack and services"
+    }
+  }
+}
